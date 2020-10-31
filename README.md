@@ -23,7 +23,7 @@ https://docs.spring.io/spring-boot/docs/current/reference/html/using-spring-boot
 
 I recommend Intellij for SB dev as it has become the norm in industry however eclipse, etc. 
 are also fine choices.
-
+-----------------------------------------------------------------------------------------------------
 Step 1: Lets get our SB application to build 
 
 For every SB application I make I start here: https://start.spring.io/
@@ -101,9 +101,351 @@ if any errors and often google can clear up many of your initial start up issues
 
 -------------------------------------------------------------------------------
 
+Step 02 Lets have our application pull up a simple set of JSPs. 
+
+Note: in terms of our MVC model in the context of a web app we can think of our view as the JSPs
+and our controller as the controller we will discuss below
+
+In your main create a folder called webapp and put your WEB-INF here.
+Then place a jsp folder in WEB-INF that contains three .jps files: 
+
+books.jsp
+------------------------------------------------------------------------
+<%@ page language="java" contentType="text/html; charset=ISO-8859-1" pageEncoding="ISO-8859-1"%>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%>
+<!DOCTYPE html>
+<html>
+<head>
+    <%@ page isELIgnored="false" %>
+    <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+    <title>Book Library</title>
+</head>
+<body>
+    <div>
+        <div>
+            <h2>Library</h2>
+            <hr/>
+            <a href="/new-book">
+                <button type="submit">Add new book</button>
+            </a>
+            <br/><br/>
+            <div>
+                <div>
+                    <div>Book list</div>
+                </div>
+                <div>
+                    <table>
+                        <tr>
+                            <th>Id</th>
+                            <th>Author</th>
+                            <th>Name</th>
+                        </tr>
+                        <c:forEach var="book" items="${books}">
+                            <tr>
+                                <td>${book.id}</td>
+                                <td>${book.author}</td>
+                                <td>${book.name}</td>
+                                <td>
+                                    <a href="/${book.id}">Edit</a>
+                                    <form action="/${book.id}/delete" method="post">
+                                        <input type="submit" value="Delete" />
+                                    </form>
+                                </td>
+                            </tr>
+                        </c:forEach>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+------------------------------------------------------------------------
+edit-book.jsp
+------------------------------------------------------------------------
+<!DOCTYPE html>
+<%@ taglib prefix="spring" uri="http://www.springframework.org/tags"%>
+<%@ taglib prefix="form" uri="http://www.springframework.org/tags/form"%>
+<html lang="en">
+<head>
+    <%@ page isELIgnored="false" %>
+    <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+    <title>Book Library</title>
+</head>
+<body>
+    <div>
+        <h2>New User</h2>
+        <div>
+            <div>
+                <form:form action="${book.id}/update" modelAttribute="book" method="post">
+                    <div>
+                        <div>
+                            Id: ${book.id}
+                        </div>
+                        <div>
+                            <form:label path="author">Author</form:label>
+                            <form:input type="text" id="author" path="author"/>
+                            <form:errors path="author" />
+                        </div>
+                        <div>
+                            <form:label path="name">Name</form:label>
+                            <form:input type="text" id="name" path="name"/>
+                            <form:errors path="name" />
+                        </div>
+                    </div>
+                    <div>
+                        <div>
+                            <input type="submit" value="Update User">
+                        </div>
+                    </div>
+                </form:form>
+            </div>
+        </div>
+    </div>
+    </body>
+</html>
+------------------------------------------------------------------------
+new-book.jsp
+------------------------------------------------------------------------
+<!DOCTYPE html>
+<%@ taglib prefix="spring" uri="http://www.springframework.org/tags"%>
+<%@ taglib prefix="form" uri="http://www.springframework.org/tags/form"%>
+<html lang="en">
+<head>
+    <%@ page isELIgnored="false" %>
+    <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+    <title>Book Library</title>
+</head>
+<body>
+    <div>
+        <h2>New User</h2>
+        <div>
+            <div>
+                <form:form action="/add" modelAttribute="book" method="post">
+                    <div>
+                        <div>
+                            <form:label path="author">Author</form:label>
+                            <form:input type="text" id="author" path="author"/>
+                            <form:errors path="author" />
+                        </div>
+                        <div>
+                            <form:label path="name">Name</form:label>
+                            <form:input type="text" id="name" path="name"/>
+                            <form:errors path="name" />
+                        </div>
+                    </div>
+                    <div>
+                        <div>
+                            <input type="submit" value="Add User">
+                        </div>
+                    </div>
+                </form:form>
+            </div>
+        </div>
+    </div>
+    </body>
+</html>
+------------------------------------------------------------------------
+
+Overall these are fairly standard html pages but a couple things to note: 
+
+Notice the form tags. These are read when we render our forms as we have added the JSTL and JSP dependencies in our pom.xml
+More on JSTL and JSP:
+https://docs.spring.io/spring-framework/docs/3.2.x/spring-framework-reference/html/view.html
+
+Notice how form tags are used for each page. In new book and edit book they contain inputs for books to be entered into the DB we will spin up
+and in books we notice that this time we still have a form tag to observe our submit action but also:
+c:forEach var="book" items="${books} which can be looked at as a variation of list comprehension that will return books from our app logic/DB
+and put them in an html table in this case. 
 
 
+Before adding our contoller lets quickly add a POJO called book to serve as our books to store. 
+Place a folder called entity in our library folder in which we create a class called book containing the following
+--------------------------------------------------------------------------------------------------------------------
 
+package com.devcases.springboot.crud.library.entity;
+
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.validation.constraints.NotBlank;
+
+@Entity
+public class Book {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private long id;
+
+    @NotBlank(message = "Author is mandatory")
+    private String author;
+
+    @NotBlank(message = "Name is mandatory")
+    private String name;
+
+    public long getId() {
+        return id;
+    }
+
+    public void setId(long id) {
+        this.id = id;
+    }
+
+    public String getAuthor() {
+        return author;
+    }
+
+    public void setAuthor(String author) {
+        this.author = author;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+}
+--------------------------------------------------------------------------------
+While this is a simple java object, take note of the annotations present. These are
+to help us store book objects in our DB in the future. 
+
+Now lets add our controller in
+--------------------------------------------------------------------------------
+
+
+package com.devcases.springboot.crud.library.controller;
+
+import com.devcases.springboot.crud.library.entity.Book;
+//import com.devcases.springboot.crud.library.model.BookService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+
+import javax.validation.Valid;
+
+@Controller
+public class LibraryController {
+
+//    private BookService service;
+
+//    @Autowired
+//    public LibraryController(BookService service) {
+//        this.service = service;
+//    }
+
+    @GetMapping
+    public String showAllBooks(Model model) {
+   //     model.addAttribute("books", service.findAll());
+        return "books";
+    }
+
+    @GetMapping("/new-book")
+    public String showBookCreationForm(Model model) {
+        model.addAttribute("book", new Book());
+        return "new-book";
+    }
+
+    @PostMapping(value = "/add", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+    public String addNewBook(@Valid @ModelAttribute Book book, BindingResult result, Model model) {
+        if (result.hasErrors()) {
+            return "new-book";
+        }
+   //     service.save(book);
+   //     model.addAttribute("books", service.findAll());
+        return "books";
+    }
+
+    @GetMapping("/{id}")
+    public String showBookdById(@PathVariable Long id, Model model) {
+//        Book book = service.findById(id)
+//                .orElseThrow(() -> new IllegalArgumentException("Invalid book Id:" + id));
+//        model.addAttribute("book", book);
+        return "edit-book";
+    }
+
+    @PostMapping("/{id}/update")
+    public String updateBook(@PathVariable Long id, @Valid @ModelAttribute Book book, BindingResult result, Model model) {
+        if (result.hasErrors()) {
+            return "edit-book";
+        }
+//        service.findById(id)
+//                .orElseThrow(() -> new IllegalArgumentException("Invalid book Id:" + id));
+//        service.save(book);
+//        model.addAttribute("books", service.findAll());
+        return "books";
+    }
+
+    @PostMapping("/{id}/delete")
+    public String deleteBook(@PathVariable Long id, Model model) {
+//        service.findById(id)
+//                .orElseThrow(() -> new IllegalArgumentException("Invalid book Id:" + id));
+//        service.deleteById(id);
+//        model.addAttribute("books", service.findAll());
+        return "books";
+    }
+}
+
+--------------------------------------------------------------------------------
+Notice at this stage I have commented out all application logic calls in our controller.  I did not want to completely 
+delete everything else as I felt leaving it would give a more wholistic view but please copy the code and delete it to 
+focus more on the controller logic if the commented code is distracting. 
+
+Things to look at: 
+
+How are HTTP post, get, etc. calls mapped to JSPs based on our controllers? 
+How is data from the forms being read into these controllers?
+
+Here is an excellent tool for testing controllers/APIs widely used in industry:
+https://www.postman.com/downloads/
+Use it to play around with sending different requests to your localhost and look at
+the payloads you send and recieve. (note you will get errors doing this until
+you have completely finished step 2 but take note of the errors and look at why the following
+steps fixed them) 
+
+Here is a very short tutorial/resource that will be helpful for beginning your exploration
+of how these controllers read JSP forms.
+https://hellokoding.com/spring-boot-hello-world-example-with-jsp/
+
+You may also wonder how when we click buttons do we not only have an action happen but also move to 
+another page? For this take a look at what we are returning in each of these request mappers, you will find 
+names of other JSPs- thus how we navigate from page to page after our initial landing at localhost:8080
+
+Looking at the commented code at this point you can also start to see how this data is going to be 
+passed to the DB. 
+
+This is also a good time to quickly add to our resources folder. This folder can essentially just be 
+looked at as a place to store helpful bits of this and that for our application.
+
+for our app all we simply need is to add to our application.properties by writing: 
+
+spring.mvc.view.prefix: /WEB-INF/jsp/
+spring.mvc.view.suffix: .jsp
+server.port={YOUR_PORT}
+
+Note Spring Initializr will have created a blank app.properties file for you
+
+Make sure to replace your port 
+There are many different uses for the application.properties file as
+well as multiple ways to incorporate resources into your application.
+
+More info on application.properties and alternatives to explore: 
+https://www.tutorialspoint.com/spring_boot/spring_boot_application_properties.htm#:~:text=Properties%20files%20are%20used%20to,src%2Fmain%2Fresources%20directory.
+
+Lets test our work so far- run your application and go to localhost:8080
+
+At this point you will see your JSP home. Click add. Enter names. Test your @NotBlank contraints. Everything should be working with
+one issue: books you enter are not being saved. This is because we have not yet implemented our database, lets do that next. 
+
+----------------------------------------------------------------------------------------------------------------------------------------------------
 
 
 
