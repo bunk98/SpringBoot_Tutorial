@@ -1,7 +1,7 @@
 package com.devcases.springboot.crud.library.controller;
 
 import com.devcases.springboot.crud.library.entity.Book;
-//import com.devcases.springboot.crud.library.model.BookService;
+import com.devcases.springboot.crud.library.model.BookService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
@@ -17,16 +17,16 @@ import javax.validation.Valid;
 @Controller
 public class LibraryController {
 
-//    private BookService service;
+    private BookService service;
 
-//    @Autowired
-//    public LibraryController(BookService service) {
-//        this.service = service;
-//    }
+    @Autowired
+    public LibraryController(BookService service) {
+        this.service = service;
+    }
 
     @GetMapping
     public String showAllBooks(Model model) {
-   //     model.addAttribute("books", service.findAll());
+        model.addAttribute("books", service.findAll());
         return "books";
     }
 
@@ -41,16 +41,16 @@ public class LibraryController {
         if (result.hasErrors()) {
             return "new-book";
         }
-   //     service.save(book);
-   //     model.addAttribute("books", service.findAll());
+        service.save(book);
+        model.addAttribute("books", service.findAll());
         return "books";
     }
 
     @GetMapping("/{id}")
     public String showBookdById(@PathVariable Long id, Model model) {
-//        Book book = service.findById(id)
-//                .orElseThrow(() -> new IllegalArgumentException("Invalid book Id:" + id));
-//        model.addAttribute("book", book);
+        Book book = service.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid book Id:" + id));
+        model.addAttribute("book", book);
         return "edit-book";
     }
 
@@ -59,19 +59,19 @@ public class LibraryController {
         if (result.hasErrors()) {
             return "edit-book";
         }
-//        service.findById(id)
-//                .orElseThrow(() -> new IllegalArgumentException("Invalid book Id:" + id));
-//        service.save(book);
-//        model.addAttribute("books", service.findAll());
+        service.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid book Id:" + id));
+        service.save(book);
+        model.addAttribute("books", service.findAll());
         return "books";
     }
 
     @PostMapping("/{id}/delete")
     public String deleteBook(@PathVariable Long id, Model model) {
-//        service.findById(id)
-//                .orElseThrow(() -> new IllegalArgumentException("Invalid book Id:" + id));
-//        service.deleteById(id);
-//        model.addAttribute("books", service.findAll());
+        service.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid book Id:" + id));
+        service.deleteById(id);
+        model.addAttribute("books", service.findAll());
         return "books";
     }
 }

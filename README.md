@@ -40,7 +40,7 @@ up on generating the right initial build, just start by using mine.
 Note- If you do wish to use the Spring Initializr for your project make sure to
 check that everything I have in my build is also present in yours:
 
-Here is a bit about java maven prject builds: https://maven.apache.org/guides/getting-started/maven-in-five-minutes.html
+Here is a bit about java maven project builds: https://maven.apache.org/guides/getting-started/maven-in-five-minutes.html
 
 Your pom.xml should contain everything that I have in mine depenedency wise, java version etc. 
 If you use the Spring Initializr note that you will not find the dependencies relating to JSP(Jasper) and JSTL just copy and add mine.
@@ -396,7 +396,7 @@ public class LibraryController {
 
 --------------------------------------------------------------------------------
 Notice at this stage I have commented out all application logic calls in our controller.  I did not want to completely 
-delete everything else as I felt leaving it would give a more wholistic view but please copy the code and delete it to 
+delete these as I felt leaving them would give a more wholistic view but please copy the code and delete it to 
 focus more on the controller logic if the commented code is distracting. 
 
 Things to look at: 
@@ -404,16 +404,16 @@ Things to look at:
 How are HTTP post, get, etc. calls mapped to JSPs based on our controllers? 
 How is data from the forms being read into these controllers?
 
+Here is a very short tutorial/resource that will be helpful for beginning your exploration
+of how these controllers read and interact with JSP forms.
+https://hellokoding.com/spring-boot-hello-world-example-with-jsp/
+
 Here is an excellent tool for testing controllers/APIs widely used in industry:
 https://www.postman.com/downloads/
 Use it to play around with sending different requests to your localhost and look at
 the payloads you send and recieve. (note you will get errors doing this until
 you have completely finished step 2 but take note of the errors and look at why the following
 steps fixed them) 
-
-Here is a very short tutorial/resource that will be helpful for beginning your exploration
-of how these controllers read JSP forms.
-https://hellokoding.com/spring-boot-hello-world-example-with-jsp/
 
 You may also wonder how when we click buttons do we not only have an action happen but also move to 
 another page? For this take a look at what we are returning in each of these request mappers, you will find 
@@ -446,6 +446,197 @@ At this point you will see your JSP home. Click add. Enter names. Test your @Not
 one issue: books you enter are not being saved. This is because we have not yet implemented our database, lets do that next. 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------
+
+Step03
+
+Here we will implment our DB using CRUD. This is a very simple embedded DB, it can almost be thought of a big array list:
+Here is an essentially identical implemenation to our own with a nice explaination:
+https://howtodoinjava.com/spring-boot2/spring-boot-crud-hibernate/
+
+In terms of MVC this DB and the service class I will explain below equate to our model. 
+
+Lets First comment in our service calls that are present in our Controller
+
+--------------------------------------------------------------------------------------------------------------------------------------
+
+package com.devcases.springboot.crud.library.controller;
+
+import com.devcases.springboot.crud.library.entity.Book;
+import com.devcases.springboot.crud.library.model.BookService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+
+import javax.validation.Valid;
+
+@Controller
+public class LibraryController {
+
+    private BookService service;
+
+    @Autowired
+    public LibraryController(BookService service) {
+        this.service = service;
+    }
+
+    @GetMapping
+    public String showAllBooks(Model model) {
+        model.addAttribute("books", service.findAll());
+        return "books";
+    }
+
+    @GetMapping("/new-book")
+    public String showBookCreationForm(Model model) {
+        model.addAttribute("book", new Book());
+        return "new-book";
+    }
+
+    @PostMapping(value = "/add", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+    public String addNewBook(@Valid @ModelAttribute Book book, BindingResult result, Model model) {
+        if (result.hasErrors()) {
+            return "new-book";
+        }
+        service.save(book);
+        model.addAttribute("books", service.findAll());
+        return "books";
+    }
+
+    @GetMapping("/{id}")
+    public String showBookdById(@PathVariable Long id, Model model) {
+        Book book = service.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid book Id:" + id));
+        model.addAttribute("book", book);
+        return "edit-book";
+    }
+
+    @PostMapping("/{id}/update")
+    public String updateBook(@PathVariable Long id, @Valid @ModelAttribute Book book, BindingResult result, Model model) {
+        if (result.hasErrors()) {
+            return "edit-book";
+        }
+        service.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid book Id:" + id));
+        service.save(book);
+        model.addAttribute("books", service.findAll());
+        return "books";
+    }
+
+    @PostMapping("/{id}/delete")
+    public String deleteBook(@PathVariable Long id, Model model) {
+        service.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid book Id:" + id));
+        service.deleteById(id);
+        model.addAttribute("books", service.findAll());
+        return "books";
+    }
+}
+
+---------------------------------------------------------------------------------------------------------------------------
+
+
+Now lets add the service that our API calls.
+
+What is the service class? The service class simply serves as a "middleman" between our controller/API and DB model.
+This is mainly just because it is best practice to not link a DB directly to a controller. 
+
+
+Here is our service, add it to a class called BookService in a folder called model within our Library folder: 
+
+------------------------------------------------------------------------------------------------------------------------------
+
+package com.devcases.springboot.crud.library.model;
+
+import com.devcases.springboot.crud.library.entity.Book;
+import com.devcases.springboot.crud.library.repository.BookRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
+
+@Service
+public class BookService {
+
+    private BookRepository repository;
+
+    @Autowired
+    public BookService(BookRepository repository) {
+        this.repository = repository;
+    }
+
+    public List<Book> findAll() {
+        return StreamSupport.stream(repository.findAll().spliterator(), false)
+                .collect(Collectors.toList());
+    }
+
+    public Optional<Book> findById(Long id) {
+        return repository.findById(id);
+    }
+
+    public Book save(Book stock) {
+        return repository.save(stock);
+    }
+
+    public void deleteById(Long id) {
+        repository.deleteById(id);
+    }
+}
+--------------------------------------------------------------------------------------
+
+To understand the Service class better lets also add in the DB/Repository interface and call 
+it BookRepository. Place it in a folder called repository in the the library folder. 
+
+--------------------------------------------------------------------------------------
+package com.devcases.springboot.crud.library.repository;
+
+import com.devcases.springboot.crud.library.entity.Book;
+import org.springframework.data.repository.CrudRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface BookRepository extends CrudRepository<Book, Long> {
+
+}
+---------------------------------------------------------------------------------------
+
+Some things to look at in our Service and Repository: 
+
+Take note of the @Serive and @Repository annotations and what they allow.
+https://www.baeldung.com/spring-component-repository-service
+
+Also look carefully at the autowiring in Controller and Service, this is one of the most 
+important aspects of spring as it is how our Model, View and Controller are linked together.
+This is the best explaination of autowiring I have found, notice in our application we autowire
+components using constructors.
+https://www.tutorialspoint.com/spring/spring_autowired_annotation.htm
+
+After previosuly reviewing how a CRUD DB works https://howtodoinjava.com/spring-boot2/spring-boot-crud-hibernate/
+you will notice that within the methods in the Service class we are making the standard edit calls to the DB. 
+
+Take note of how these Service methods are then called in the controller. That is how you will 
+gain an understanding of how our controller/API communicates with our DB.
+
+An area that this application could be improved is
+swapping our embedded DB out for an actual on disk relational or otherwise DB. 
+To make this happen the beauty of MVC is all you would have to do is change out your 
+repository class and make tweaks to your service class so that it will still make calls to your 
+repository correctly ie. use SQL statements in a relational DB implemenation.
+
+At this point you have completed your application! In the final stage after this I will briefly run through the steps to 
+deploy the application to Silo. Make sure to test your app locally to make sure your books are being saved and that you can edit
+and delete existing books. 
+
+------------------------------------------------------------------------------------------------------------------------------
+
+
 
 
 
