@@ -8,7 +8,7 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @SpringBootApplication
-@EnableAutoConfiguration 
+@EnableAutoConfiguration
 @ComponentScan(basePackages={"com.devcases.springboot.crud.library"})
 @EnableJpaRepositories(basePackages="com.devcases.springboot.crud.library.repository")
 public class Application extends SpringBootServletInitializer {
