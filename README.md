@@ -636,11 +636,31 @@ and delete existing books.
 
 ------------------------------------------------------------------------------------------------------------------------------
 
+Step 04- lets breifly go through a set of deployment steps
 
+Assuming you have used the same naming convention as me:
 
+1. First login to Silo- ssh on Mac/Unix, use Putty on Windows/Dos
 
+2. Place your outter most Libray folder (the folder housing your project) on Silo- I recommend doing this using WinSCP on Windows/DOS,
+or Cyberduck/Filezilla for Mac/Unix
 
+3. Navigate into your project in Silo. type mvn --version to confirm Silo has Maven installed (it will) 
 
+4. Run mvn package. This will buid your app using your pom.xml and create a generated file tree called Target. Depending on your text editor
+or IDE you may have seen this folder be generated when you build your app. 
 
+5. Go into Target and find this war file springboot-crud-1.0.0-SNAPSHOT.war
+Note- this is just a .jar file but since with is a web app it become .war or Web Archive file
+
+6. run this command to bring up you application: java -jar target/springboot-crud-1.0.0-SNAPSHOT.war --server.port={YOUR_PORT}
+make sure to change you_port to your assigned port. Also because we saved our port already in app.properties we don't actually
+need this, play around with the various ways for assigning applications properties. What overwrites what?
+
+7. go to http://silo.cs.indiana.edu:{YOUR_PORT}/ and test your app. 
+
+8. You should realize that your servers are embedded in your application- what does this mean? It means that if your telnet connection
+to Silo breaks or times out your session will be terminated and your application will stop. If you want to avoid this termination
+use keyword nohup: nohup java -jar target/springboot-crud-1.0.0-SNAPSHOT.war --server.port={YOUR_PORT}
 
 
